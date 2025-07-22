@@ -10,6 +10,6 @@ You may use it in ANY Project in Roblox like (Game, and/or Package) as long as y
 
 # Contact
 
-Roblox Devfourm: https://devforum.roblox.com/t/servicecreator-v2/3830034
+Roblox Devforum: https://devforum.roblox.com/t/servicecreator-v2/3830034
 
 ## Happy Coding! 😊
