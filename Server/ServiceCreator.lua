@@ -34,7 +34,8 @@ export type Service<T> = {
 	className: string,
 	IsA: (self: Service<T>, className: string) -> boolean,
 	ChildAdded: Signal<Instance>,
-	ChildRemoved: Signal<Instance>
+	ChildRemoved: Signal<Instance>,
+	GetPropertyChangedSignal: (self: Service<T>, property: string) -> RBXScriptSignal
 } & T
 
 
@@ -86,6 +87,14 @@ local function GiveOwnGlobals(Func : any, table, _env)
 	return Func
 end
 
+
+local propertySignals = setmetatable({}, {
+	__index = function(self, index)
+		local event = Instance.new('BindableEvent')
+		rawset(self, index, event)
+		return rawget(self, index)
+	end,
+}) :: {[any]: BindableEvent}
 
 return {
 	createSignal = function(name)
@@ -202,6 +211,11 @@ return {
 		end
 
 
+		function service:GetPropertyChangedSignal(property: string) : RBXScriptSignal
+			return propertySignals[property].Event
+		end
+
+
 		local Service = Instance.new('Folder', serviceFolder) do
 			Service.Name = className
 		end
@@ -213,7 +227,6 @@ return {
 		local Events = Instance.new('Folder', Service)
 		Events.Name = 'Events'
 
-    -- can no-longer transfer 'userdata' so usless
 		-- local GetService = Instance.new('BindableFunction', Service)
 		-- GetService.Name = 'GetService'
 
@@ -245,7 +258,7 @@ return {
 							end
 
 							return coroutine.wrap(function(...)
-								return oldFunc(_self or self, ...)
+								return oldFunc(...)
 							end)(...)
 						end
 					else
@@ -291,6 +304,7 @@ return {
 							end)
 
 							extra[i] = v.value
+							propertySignals[i]:Fire(v.value)
 
 							if v.property then
 								instance:SetAttribute(i, v.value)
@@ -310,7 +324,7 @@ return {
 			Name = instance.Name,
 			ClassName = className
 		}, service, getInstancesInService()), extra or {})
-		
+
 
 		mt.__tostring = function()
 			return className
@@ -327,6 +341,10 @@ return {
 			-- if the key is a 'Instance' then we can parent it to the Service!
 			if typeof(key) == 'Instance' then
 				key.Parent = instance
+			end
+
+			if typeof(rawget(extra, index)) == 'function' then
+				return rawget(self, index)
 			end
 
 			-- Fixes Bug: where the Parent can be set to something else than its seposed to!
@@ -355,13 +373,19 @@ return {
 				key = instance:GetAttribute(index)
 			end
 
+			print('setitng index: ' .. tostring(index), 'to: ' .. tostring(key))
 			-- set the Key if defined!
 			self[index] = key
 			return self[index]
 		end
-		
+
 		mt.__newindex = function(_, index, key)
 			local self = tbl
+
+			if typeof(rawget(self, index)) == 'function' then
+				return
+			end
+
 			if typeof(index) == 'string' and table.find(blockedWords, index) then
 				error(`Unable to assign property {index}. Property is read only`, 0)
 			end
@@ -370,20 +394,25 @@ return {
 				error(`invalid argument #2 (string expected, got {typeof(index)})`, 0)
 			end
 
+			if typeof(rawget(extra, index)) == 'function' then
+				return
+			end
+
 			if locatingTables[index] then
 				locatingTables[index](key)
 			end
 
 			if key == nil then
-        -- is not un-used because of userdata implomention!
 				-- rawset(self, index, createNilPlacement())
+				return
 			else
 				rawset(self, index, key)
+				propertySignals[index]:Fire(key)
 			end
 
 			return self[index]
 		end
-		
+
 		_G.services[className] = proxy
 		return proxy
 	end

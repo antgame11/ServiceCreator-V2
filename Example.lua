@@ -42,6 +42,7 @@ local Service = Creator.createService(ServiceFolder, ClassName, {
 	FunSignal = FunSignal
 })
 
+
 -- Get the Service
 local service = GetService('ServiceCreator')
 print(service, service.var)
@@ -54,3 +55,10 @@ service.FunSignal:Connect(function(response)
 end)
 
 service:fireSignal()
+
+-- PropertyChangedSignal fires when a property is changed from the Service.
+service:GetPropertyChangedSignal('Name'):Connect(function(e)
+	print('printed when the Name property is changed: ' .. e) -- prints: GG
+end)
+
+service.Name = 'GG'
