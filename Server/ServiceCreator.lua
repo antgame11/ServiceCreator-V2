@@ -1,4 +1,3 @@
---!strict
 local ServerStorage = game:GetService('ServerStorage')
 local RunService = game:GetService('RunService')
 _G.services = _G.services or {}
