@@ -1,11 +1,10 @@
---!strict
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local RunService = game:GetService('RunService')
 _G.services = _G.services or {}
 
 
 local use_env = false
-local env_folder = Instance.new('Folder')
+local env_folder = InWstance.new('Folder')
 
 
 export type Signal<T...> = {
